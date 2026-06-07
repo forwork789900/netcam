@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>NetCam Pro</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #080910; --s1: #0f1016; --s2: #16171f; --s3: #1e2030;
+  --g: #00ff88; --r: #ff3f6c; --b: #3d9bff; --y: #ffcc00;
+  --t: #f0f0f8; --t2: #6e7090; --t3: #9090b0;
+  --rad: 16px; --rad2: 10px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+body { background: var(--bg); color: var(--t); font-family: 'Syne', sans-serif; min-height: 100vh; overflow-x: hidden; }
+body::before { content: ''; position: fixed; inset: 0; background-image: linear-gradient(rgba(0,255,136,.025) 1px, transparent 1px), linear-gradient(90deg, rgba(0,255,136,.025) 1px, transparent 1px); background-size: 36px 36px; pointer-events: none; z-index: 0; }
+.app { max-width: 420px; margin: 0 auto; padding: 16px 16px 40px; position: relative; z-index: 1; }
+
+/* Header */
+.hdr { display: flex; align-items: center; padding: 8px 0 20px; gap: 12px; }
+.hlogo { display: flex; align-items: center; gap: 10px; flex: 1; }
+.hmark { width: 36px; height: 36px; border-radius: 10px; background: var(--g); display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 16px rgba(0,255,136,.3); }
+.hmark svg { width: 20px; height: 20px; fill: #000; }
+.hname { font-size: 20px; font-weight: 800; letter-spacing: -0.5px; }
+.hver { font-size: 10px; color: var(--t2); font-family: 'DM Mono'; margin-top: 1px; letter-spacing: 1px; }
+.lpill { display: flex; align-items: center; gap: 5px; background: rgba(255,63,108,.12); border: 1px solid rgba(255,63,108,.3); padding: 5px 12px; border-radius: 20px; font-size: 11px; font-weight: 700; color: var(--r); letter-spacing: 1px; opacity: 0; transition: opacity .4s; }
+.lpill.show { opacity: 1; }
+.ldot { width: 6px; height: 6px; border-radius: 50%; background: var(--r); animation: pu 1s infinite; }
+@keyframes pu { 0%,100%{transform:scale(1);opacity:1} 50%{transform:scale(.6);opacity:.4} }
+@keyframes up { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
+@keyframes fp { from{opacity:0;transform:translate(-50%,-50%) scale(1.6)} to{opacity:1;transform:translate(-50%,-50%) scale(1)} }
+
+/* Tabs */
+.tabs { display: grid; grid-template-columns: 1fr 1fr; background: var(--s1); border: 1px solid rgba(255,255,255,.06); border-radius: var(--rad); padding: 4px; margin-bottom: 16px; gap: 4px; }
+.tab { padding: 11px; border-radius: 12px; border: none; background: none; font-family: 'Syne'; font-size: 13px; font-weight: 700; color: var(--t2); cursor: pointer; transition: all .25s; letter-spacing: .5px; }
+.tab.active { background: var(--s3); color: var(--t); box-shadow: 0 2px 8px rgba(0,0,0,.4); }
+.page { display: none; }
+.page.active { display: block; animation: up .2s ease; }
+
+/* Video */
+.vw { position: relative; width: 100%; aspect-ratio: 16/9; background: #000; border-radius: var(--rad); overflow: hidden; margin-bottom: 14px; border: 1px solid rgba(255,255,255,.07); box-shadow: 0 20px 60px rgba(0,0,0,.6); }
+video { width: 100%; height: 100%; object-fit: cover; display: block; }
+video.night { filter: brightness(1.6) contrast(1.3) saturate(.15) hue-rotate(90deg); }
+.vw.live::after { content: ''; position: absolute; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, transparent, var(--g), transparent); animation: scan 3s linear infinite; opacity: .3; pointer-events: none; }
+@keyframes scan { from{top:-2px} to{top:100%} }
+.cors { position: absolute; inset: 0; pointer-events: none; }
+.co { position: absolute; width: 16px; height: 16px; border-color: var(--g); border-style: solid; opacity: .3; transition: opacity .3s; }
+.vw.live .co { opacity: 1; }
+.co.tl{top:8px;left:8px;border-width:2px 0 0 2px;border-radius:2px 0 0 0}
+.co.tr{top:8px;right:8px;border-width:2px 2px 0 0;border-radius:0 2px 0 0}
+.co.bl{bottom:8px;left:8px;border-width:0 0 2px 2px;border-radius:0 0 0 2px}
+.co.br{bottom:8px;right:8px;border-width:0 2px 2px 0;border-radius:0 0 2px 0}
+.ph { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; color: var(--t2); }
+.ph-ic { font-size: 40px; opacity: .25; }
+.ph-tx { font-size: 11px; font-weight: 700; letter-spacing: 2px; opacity: .4; }
+.ta { position: absolute; inset: 0; cursor: crosshair; }
+.fr { position: absolute; width: 52px; height: 52px; border: 1.5px solid var(--y); border-radius: 4px; transform: translate(-50%,-50%); display: none; filter: drop-shadow(0 0 8px var(--y)); animation: fp .2s ease; }
+.hud { position: absolute; top: 10px; left: 10px; right: 10px; display: flex; justify-content: space-between; pointer-events: none; }
+.hi { background: rgba(0,0,0,.65); backdrop-filter: blur(8px); padding: 3px 8px; border-radius: 6px; font-family: 'DM Mono'; font-size: 10px; color: var(--g); opacity: 0; transition: opacity .3s; }
+.vw.live .hi { opacity: 1; }
+.zbar { position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 10px; background: rgba(0,0,0,.75); backdrop-filter: blur(12px); padding: 8px 16px; border-radius: 30px; border: 1px solid rgba(255,255,255,.1); opacity: 0; transition: opacity .3s; pointer-events: none; min-width: 220px; }
+.zbar.show { opacity: 1; pointer-events: all; }
+.znum { font-family: 'DM Mono'; font-size: 13px; color: var(--g); min-width: 32px; font-weight: 500; }
+input[type=range] { flex: 1; -webkit-appearance: none; height: 2px; background: rgba(255,255,255,.15); border-radius: 2px; outline: none; }
+input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 18px; border-radius: 50%; background: var(--g); cursor: pointer; box-shadow: 0 0 10px rgba(0,255,136,.5); }
+
+/* Toolbar */
+.tbar { display: grid; grid-template-columns: repeat(5,1fr); gap: 8px; margin-bottom: 14px; }
+.tb { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px; padding: 13px 4px; background: var(--s1); border: 1px solid rgba(255,255,255,.06); border-radius: var(--rad2); cursor: pointer; transition: all .18s; font-size: 22px; user-select: none; }
+.tb:active { transform: scale(.88); }
+.tb span { font-size: 9px; font-weight: 700; letter-spacing: .8px; text-transform: uppercase; color: var(--t2); }
+.tb.on { background: rgba(0,255,136,.1); border-color: rgba(0,255,136,.35); }
+.tb.on span { color: var(--g); }
+.tb.oy { background: rgba(255,204,0,.1); border-color: rgba(255,204,0,.35); }
+.tb.oy span { color: var(--y); }
+.tb.or { background: rgba(255,63,108,.1); border-color: rgba(255,63,108,.3); }
+.tb.or span { color: var(--r); }
+.vtbar { display: grid; grid-template-columns: repeat(4,1fr); gap: 8px; margin-bottom: 14px; }
+
+/* Status */
+.stat { display: flex; align-items: center; gap: 10px; padding: 11px 14px; background: var(--s1); border: 1px solid rgba(255,255,255,.06); border-radius: var(--rad2); margin-bottom: 14px; }
+.sd { width: 8px; height: 8px; border-radius: 50%; background: var(--s3); flex-shrink: 0; transition: all .3s; }
+.sd.on { background: var(--g); box-shadow: 0 0 8px var(--g); }
+.sd.err { background: var(--r); box-shadow: 0 0 8px var(--r); animation: pu .8s infinite; }
+.sd.ld { background: var(--y); animation: pu .6s infinite; }
+.st { flex: 1; font-family: 'DM Mono'; font-size: 11px; color: var(--t3); }
+.mbars { display: flex; gap: 2px; align-items: flex-end; height: 14px; }
+.mb { width: 3px; border-radius: 2px; background: var(--s3); transition: height .08s; }
+.mbars.on .mb { background: var(--g); }
+
+/* Buttons */
+.br { display: flex; gap: 8px; margin-bottom: 8px; }
+.btn { flex: 1; padding: 14px; border: none; border-radius: var(--rad2); font-family: 'Syne'; font-size: 14px; font-weight: 700; cursor: pointer; transition: all .18s; }
+.btn:active { transform: scale(.97); }
+.btn-g { background: var(--g); color: #000; box-shadow: 0 4px 20px rgba(0,255,136,.25); }
+.btn-s { background: var(--s2); color: var(--t); border: 1px solid rgba(255,255,255,.08); }
+.btn-d { background: rgba(255,63,108,.1); color: var(--r); border: 1px solid rgba(255,63,108,.25); }
+.btn-fw { width: 100%; margin-bottom: 8px; }
+.btn:disabled { opacity: .3; cursor: not-allowed; transform: none !important; box-shadow: none !important; }
+
+/* Card */
+.card { background: var(--s1); border: 1px solid rgba(255,255,255,.06); border-radius: var(--rad); padding: 16px; margin-bottom: 14px; }
+.ctit { font-size: 10px; font-weight: 700; color: var(--t2); letter-spacing: 2px; text-transform: uppercase; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+.ctit::after { content: ''; flex: 1; height: 1px; background: rgba(255,255,255,.06); }
+
+/* Settings */
+.sg { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.sw { display: flex; flex-direction: column; gap: 6px; }
+.sl { font-size: 10px; font-weight: 700; color: var(--t2); letter-spacing: 1px; text-transform: uppercase; }
+select { background: var(--s2); border: 1px solid rgba(255,255,255,.08); color: var(--t); font-family: 'DM Mono'; font-size: 12px; padding: 10px 28px 10px 12px; border-radius: var(--rad2); outline: none; cursor: pointer; -webkit-appearance: none; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%236e7090' stroke-width='2.5'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 10px center; transition: border-color .2s; }
+select:focus { border-color: rgba(0,255,136,.4); }
+
+/* Info */
+.ig { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; margin-bottom: 14px; display: none; }
+.ic { background: var(--s2); border-radius: var(--rad2); padding: 10px 12px; border: 1px solid rgba(255,255,255,.05); }
+.icl { font-size: 9px; color: var(--t2); letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 4px; }
+.icv { font-family: 'DM Mono'; font-size: 14px; color: var(--g); font-weight: 500; }
+
+/* Share */
+.srow { display: flex; gap: 8px; align-items: center; margin-bottom: 10px; }
+.sinp { flex: 1; background: var(--s2); border: 1px solid rgba(255,255,255,.08); color: var(--g); font-family: 'DM Mono'; font-size: 11px; padding: 10px 12px; border-radius: var(--rad2); outline: none; }
+.cbtn { padding: 10px 16px; background: var(--g); color: #000; border: none; border-radius: var(--rad2); font-family: 'Syne'; font-weight: 700; font-size: 12px; cursor: pointer; transition: all .18s; }
+.cbtn:active { transform: scale(.95); }
+.hint { font-size: 11px; color: var(--t2); line-height: 1.7; }
+.hint b { color: var(--g); }
+.qr { text-align: center; margin-top: 14px; padding-top: 14px; border-top: 1px solid rgba(255,255,255,.05); }
+.qr img { border-radius: 10px; border: 2px solid rgba(255,255,255,.08); }
+.qr p { font-size: 10px; color: var(--t2); margin-top: 8px; letter-spacing: 1px; }
+
+/* Connect */
+.rinp { width: 100%; background: var(--s2); border: 1px solid rgba(255,255,255,.08); color: var(--t); font-family: 'DM Mono'; font-size: 20px; padding: 14px; border-radius: var(--rad2); outline: none; margin-bottom: 10px; transition: border-color .2s; letter-spacing: 4px; text-align: center; font-weight: 500; }
+.rinp:focus { border-color: rgba(0,255,136,.4); }
+.rinp::placeholder { letter-spacing: 0; font-size: 12px; color: var(--t2); font-weight: 400; }
+
+/* Toast */
+.toast { position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%) translateY(70px); background: var(--s3); color: var(--t); padding: 11px 22px; border-radius: 30px; font-size: 13px; font-weight: 600; border: 1px solid rgba(255,255,255,.1); backdrop-filter: blur(20px); transition: transform .3s cubic-bezier(.34,1.56,.64,1); z-index: 9999; pointer-events: none; box-shadow: 0 10px 40px rgba(0,0,0,.5); }
+.toast.show { transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- Header -->
+  <div class="hdr">
+    <div class="hlogo">
+      <div class="hmark">
+        <svg viewBox="0 0 24 24"><path d="M17 10.5V7a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h12a1 1 0 001-1v-3.5l4 4v-11l-4 4z"/></svg>
+      </div>
+      <div><div class="hname">NetCam Pro</div><div class="hver">v3.0 · WebRTC + Firebase</div></div>
+    </div>
+    <div class="lpill" id="lp"><div class="ldot"></div>LIVE</div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab active" onclick="sw('cam')">📷 Camera</button>
+    <button class="tab" onclick="sw('view')">📺 Viewer</button>
+  </div>
+
+  <!-- CAMERA -->
+  <div class="page active" id="p-cam">
+    <div class="vw" id="cw">
+      <video id="lv" autoplay muted playsinline></video>
+      <div class="ta" onclick="tapF(event)"></div>
+      <div class="fr" id="fr"></div>
+      <div class="cors"><div class="co tl"></div><div class="co tr"></div><div class="co bl"></div><div class="co br"></div></div>
+      <div class="hud"><div class="hi" id="hRes">—</div><div class="hi" id="hFps">30fps</div></div>
+      <div class="ph" id="cp"><div class="ph-ic">📷</div><div class="ph-tx">CAMERA OFF</div></div>
+      <div class="zbar" id="zb">
+        <span class="znum" id="zn">1×</span>
+        <input type="range" id="zs" min="1" max="8" step="0.1" value="1" oninput="apZ(this.value)">
+        <span style="font-size:10px;color:var(--t2);font-family:'DM Mono'">8×</span>
+      </div>
+    </div>
+
+    <div class="tbar">
+      <div class="tb" id="tN" onclick="tNight()">🌙<span>Night</span></div>
+      <div class="tb" id="tF" onclick="tFlash()">⚡<span>Flash</span></div>
+      <div class="tb" id="tZ" onclick="tZoom()">🔍<span>Zoom</span></div>
+      <div class="tb on" id="tFo" onclick="tFocus()">🎯<span>Focus</span></div>
+      <div class="tb on" id="tM" onclick="tMic()">🎙️<span>Mic</span></div>
+    </div>
+
+    <div class="stat">
+      <div class="sd" id="cd"></div>
+      <span class="st" id="ct">Camera চালু করুন</span>
+      <div class="mbars" id="mb"><div class="mb" id="mb1" style="height:3px"></div><div class="mb" id="mb2" style="height:8px"></div><div class="mb" id="mb3" style="height:4px"></div><div class="mb" id="mb4" style="height:10px"></div></div>
+    </div>
+
+    <div class="card" id="sc">
+      <div class="ctit">Settings</div>
+      <div class="sg">
+        <div class="sw"><div class="sl">Resolution</div>
+          <select id="rs"><option value="360">360p · Low</option><option value="480">480p · SD</option><option value="720" selected>720p · HD</option><option value="1080">1080p · FHD</option></select>
+        </div>
+        <div class="sw"><div class="sl">Frame Rate</div>
+          <select id="fs"><option value="15">15fps · Save</option><option value="24">24fps · Smooth</option><option value="30" selected>30fps · Normal</option><option value="60">60fps · High</option></select>
+        </div>
+      </div>
+    </div>
+
+    <div class="br">
+      <button class="btn btn-g" id="stBtn" onclick="startC()">▶ Start</button>
+      <button class="btn btn-s" id="flBtn" onclick="flipC()" disabled>⟳ Flip</button>
+    </div>
+    <button class="btn btn-d btn-fw" id="spBtn" onclick="stopC()" disabled>■ Stop</button>
+
+    <div class="card" id="shCard" style="display:none">
+      <div class="ctit">Share Link</div>
+      <div class="srow"><input class="sinp" type="text" id="shInp" readonly><button class="cbtn" onclick="cpUrl()">Copy</button></div>
+      <p class="hint">PC-র browser-এ এই লিংক খুলুন → Viewer → Room ID দিন<br><b>Same WiFi-এ video সরাসরি যাবে ✅</b></p>
+      <div class="qr" id="qrBox"></div>
+    </div>
+
+    <div class="ig" id="ig">
+      <div class="ic"><div class="icl">Resolution</div><div class="icv" id="iR">—</div></div>
+      <div class="ic"><div class="icl">Zoom</div><div class="icv" id="iZ">1×</div></div>
+      <div class="ic"><div class="icl">Viewers</div><div class="icv" id="iP">0</div></div>
+    </div>
+  </div>
+
+  <!-- VIEWER -->
+  <div class="page" id="p-view">
+    <div class="vw" id="vw">
+      <video id="rv" autoplay playsinline></video>
+      <div class="cors"><div class="co tl"></div><div class="co tr"></div><div class="co bl"></div><div class="co br"></div></div>
+      <div class="ph" id="vp"><div class="ph-ic">📺</div><div class="ph-tx">NOT CONNECTED</div></div>
+    </div>
+
+    <div class="vtbar">
+      <div class="tb" id="vN" onclick="vNight()">🌙<span>Night</span></div>
+      <div class="tb" id="vT" onclick="vTalk()">🎤<span>Talk</span></div>
+      <div class="tb on" id="vV" onclick="vVol()">🔊<span>Sound</span></div>
+      <div class="tb" id="vF" onclick="vFull()">⛶<span>Full</span></div>
+    </div>
+
+    <div class="stat">
+      <div class="sd" id="vd"></div>
+      <span class="st" id="vt">Room ID দিয়ে connect করুন</span>
+      <div class="mbars" id="vmb"><div class="mb" id="vm1" style="height:3px"></div><div class="mb" id="vm2" style="height:8px"></div><div class="mb" id="vm3" style="height:4px"></div><div class="mb" id="vm4" style="height:10px"></div></div>
+    </div>
+
+    <div class="card">
+      <div class="ctit">Connect</div>
+      <input class="rinp" type="text" id="ri" placeholder="Enter Room ID" maxlength="10">
+      <div class="br">
+        <button class="btn btn-g" id="cnBtn" onclick="conn()">🔗 Connect</button>
+        <button class="btn btn-d" id="dcBtn" onclick="disc()" disabled>✕ Disconnect</button>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getDatabase, ref, push, remove, onChildAdded } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+const fbCfg = {
+  apiKey: "AIzaSyBW4n5IWlqRwQD75XG-rwQwEEhenxFaFoM",
+  authDomain: "ipcam-app.firebaseapp.com",
+  databaseURL: "https://ipcam-app-default-rtdb.firebaseio.com",
+  projectId: "ipcam-app",
+  storageBucket: "ipcam-app.firebasestorage.app",
+  messagingSenderId: "431922522640",
+  appId: "1:431922522640:web:28322c8a2c9673c0b7b895"
+};
+
+let db; try { db = getDatabase(initializeApp(fbCfg)); } catch(e) {}
+
+const $ = id => document.getElementById(id);
+const rMap = { '360':{w:640,h:360}, '480':{w:854,h:480}, '720':{w:1280,h:720}, '1080':{w:1920,h:1080} };
+
+let ls=null, vms=null, pc=null, roomId=null, isCam=false, isFront=true;
+let night=false, vn=false, flash=false, zOn=false, micOn=true, vMicOn=false, volOn=true, focOn=true;
+let zoom=1, mAF=null, vmAF=null, pend=[], bc=null, slisten=false;
+
+const rtcC = { iceServers:[{urls:'stun:stun.l.google.com:19302'},{urls:'stun:stun1.l.google.com:19302'},{urls:'stun:stun.cloudflare.com:3478'}] };
+
+function genId() { return Math.random().toString(36).substr(2,6).toUpperCase(); }
+function setSt(w,s,t){ const d=$(w==='c'?'cd':'vd'),x=$(w==='c'?'ct':'vt'); d.className='sd'+(s==='on'?' on':s==='err'?' err':s==='ld'?' ld':''); x.textContent=t; }
+function toast(m){ const t=$('toast'); t.textContent=m; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2500); }
+function setTb(id,c){ $(id).className='tb'+(c?' '+c:''); }
+
+function showQR(url){
+  const e=encodeURIComponent(url);
+  $('qrBox').innerHTML=`<img src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&color=00ff88&bgcolor=0f1016&data=${e}" width="160" height="160"><p>PC দিয়ে QR scan করুন</p>`;
+}
+
+function micViz(stream, isV){
+  try {
+    const ac=new(window.AudioContext||window.webkitAudioContext)();
+    const an=ac.createAnalyser(); an.fftSize=256;
+    ac.createMediaStreamSource(stream).connect(an);
+    const d=new Uint8Array(an.frequencyBinCount);
+    const ids=isV?['vm1','vm2','vm3','vm4']:['mb1','mb2','mb3','mb4'];
+    $(isV?'vmb':'mb').classList.add('on');
+    const tick=()=>{ const f=requestAnimationFrame(tick); if(isV)vmAF=f;else mAF=f; an.getByteFrequencyData(d); const avg=d.slice(0,40).reduce((a,b)=>a+b,0)/40; ids.forEach(id=>{ $(id).style.height=Math.max(3,Math.min(14,(avg/255)*14*(0.4+Math.random()*1.2)))+'px'; }); };
+    tick();
+  }catch(e){}
+}
+
+async function sig(data){
+  if(db){ try{ await push(ref(db,`rooms/${roomId}/sig`),{...data,ts:Date.now()}); return; }catch(e){} }
+  if(!bc) bc=new BroadcastChannel('nc_'+roomId);
+  bc.postMessage(data);
+}
+
+function listenSig(){
+  if(slisten) return; slisten=true;
+  if(db){
+    try{ onChildAdded(ref(db,`rooms/${roomId}/sig`),(snap)=>{ const d=snap.val(); if(!d) return; if(isCam&&d.from==='cam') return; if(!isCam&&d.from==='view') return; handleSig(d); }); return; }catch(e){}
+  }
+  if(!bc) bc=new BroadcastChannel('nc_'+roomId);
+  bc.onmessage=(e)=>{ const d=e.data; if(isCam&&d.from==='cam') return; if(!isCam&&d.from==='view') return; handleSig(d); };
+}
+
+async function handleSig(msg){
+  if(!msg?.type) return;
+  if(msg.type==='offer'&&!isCam){ await mkPeer(); await pc.setRemoteDescription(new RTCSessionDescription(msg.sdp)); const a=await pc.createAnswer(); await pc.setLocalDescription(a); sig({type:'answer',from:'view',sdp:pc.localDescription}); for(const c of pend){try{await pc.addIceCandidate(c);}catch{}} pend=[]; }
+  else if(msg.type==='answer'&&isCam){ if(pc&&pc.signalingState!=='stable') await pc.setRemoteDescription(new RTCSessionDescription(msg.sdp)); }
+  else if(msg.type==='ice'){ const c=new RTCIceCandidate(msg.candidate); if(pc&&pc.remoteDescription){try{await pc.addIceCandidate(c);}catch{}}else pend.push(c); }
+  else if(msg.type==='join'&&isCam){ if(pc){pc.close();pc=null;} await mkOffer(); }
+}
+
+async function mkPeer(){
+  pc=new RTCPeerConnection(rtcC);
+  pc.onicecandidate=(e)=>{ if(e.candidate) sig({type:'ice',from:isCam?'cam':'view',candidate:e.candidate}); };
+  pc.onconnectionstatechange=()=>{
+    const s=pc.connectionState;
+    if(s==='connected'){
+      if(isCam){setSt('c','on','✓ Viewer connected');$('iP').textContent='1';$('lp').classList.add('show');}
+      else{setSt('v','on','✓ Live stream');$('lp').classList.add('show');$('vw').classList.add('live');}
+    } else if(s==='failed'||s==='disconnected'){
+      if(isCam){setSt('c','on',`Room: ${roomId}`);$('iP').textContent='0';$('lp').classList.remove('show');}
+      else{setSt('v','err','Disconnected');$('lp').classList.remove('show');$('vw').classList.remove('live');}
+    }
+  };
+  pc.ontrack=(e)=>{ if(e.streams[0])$('rv').srcObject=e.streams[0]; $('vp').style.display='none'; $('dcBtn').disabled=false; $('rv').muted=!volOn; };
+  if(isCam&&ls) ls.getTracks().forEach(t=>pc.addTrack(t,ls));
+}
+
+async function mkOffer(){ await mkPeer(); const o=await pc.createOffer(); await pc.setLocalDescription(o); sig({type:'offer',from:'cam',sdp:pc.localDescription}); }
+
+// Camera controls
+window.startC=async()=>{
+  try{
+    setSt('c','ld','Starting...');
+    const res=$('rs').value, fps=parseInt($('fs').value), {w,h}=rMap[res];
+    ls=await navigator.mediaDevices.getUserMedia({video:{facingMode:isFront?'user':'environment',width:{ideal:w},height:{ideal:h},frameRate:{ideal:fps}},audio:true});
+    $('lv').srcObject=ls; $('cp').style.display='none'; $('cw').classList.add('live');
+    const s=ls.getVideoTracks()[0].getSettings();
+    $('hRes').textContent=`${s.width||w}×${s.height||h}`; $('hFps').textContent=`${fps}fps`; $('iR').textContent=`${s.width||w}×${s.height||h}`;
+    $('stBtn').disabled=true; $('spBtn').disabled=false; $('flBtn').disabled=false;
+    $('ig').style.display='grid'; $('sc').style.opacity='.4'; $('sc').style.pointerEvents='none';
+    micViz(ls,false);
+    roomId=genId(); isCam=true; slisten=false; listenSig(); await mkOffer();
+    const url=location.href.split('#')[0]+'#'+roomId;
+    $('shInp').value=url; $('shCard').style.display='block'; showQR(url);
+    setSt('c','on',`Room: ${roomId}`);
+  }catch(e){ setSt('c','err','Permission denied'); toast('📵 Camera/Mic permission দরকার'); }
+};
+
+window.stopC=()=>{
+  if(ls){ls.getTracks().forEach(t=>t.stop());ls=null;} if(pc){pc.close();pc=null;} if(bc){bc.close();bc=null;}
+  if(mAF)cancelAnimationFrame(mAF); if(db){try{remove(ref(db,`rooms/${roomId}`));}catch{}} slisten=false;
+  $('lv').srcObject=null; $('lv').className=''; $('cp').style.display='flex'; $('cw').classList.remove('live');
+  $('lp').classList.remove('show'); $('stBtn').disabled=false; $('spBtn').disabled=true; $('flBtn').disabled=true;
+  $('shCard').style.display='none'; $('ig').style.display='none'; $('sc').style.opacity='1'; $('sc').style.pointerEvents='all';
+  $('zb').classList.remove('show'); $('mb').classList.remove('on');
+  night=false;flash=false;zOn=false;micOn=true;
+  setTb('tN','');setTb('tF','');setTb('tZ','');setTb('tFo','on');setTb('tM','on');
+  setSt('c','','Camera চালু করুন');
+};
+
+window.flipC=async()=>{
+  isFront=!isFront; if(!ls) return;
+  const {w,h}=rMap[$('rs').value], fps=parseInt($('fs').value);
+  ls.getVideoTracks().forEach(t=>t.stop());
+  const ns=await navigator.mediaDevices.getUserMedia({video:{facingMode:isFront?'user':'environment',width:{ideal:w},height:{ideal:h},frameRate:{ideal:fps}}});
+  const nt=ns.getVideoTracks()[0];
+  ls.removeTrack(ls.getVideoTracks()[0]); ls.addTrack(nt);
+  $('lv').srcObject=ls; if(night)$('lv').classList.add('night');
+  if(pc){const s=pc.getSenders().find(s=>s.track?.kind==='video');if(s)s.replaceTrack(nt);}
+  toast(isFront?'📷 Front':'📷 Back');
+};
+
+window.tNight=()=>{night=!night;$('lv').classList.toggle('night',night);setTb('tN',night?'on':'');toast(night?'🌙 Night on':'Night off');};
+window.vNight=()=>{vn=!vn;$('rv').classList.toggle('night',vn);setTb('vN',vn?'on':'');toast(vn?'🌙 Night on':'Night off');};
+window.tFlash=async()=>{
+  if(!ls){toast('Start camera first');return;} const t=ls.getVideoTracks()[0],cap=t.getCapabilities?t.getCapabilities():{};
+  if(!cap.torch){toast('Flash not available');return;} flash=!flash;
+  try{await t.applyConstraints({advanced:[{torch:flash}]});setTb('tF',flash?'oy':'');toast(flash?'⚡ Flash on':'Flash off');}catch{toast('Flash error');}
+};
+window.tZoom=()=>{zOn=!zOn;$('zb').classList.toggle('show',zOn);setTb('tZ',zOn?'on':'');};
+window.apZ=async(v)=>{
+  zoom=parseFloat(v); $('zn').textContent=zoom.toFixed(1)+'×'; $('iZ').textContent=zoom.toFixed(1)+'×';
+  if(!ls) return; const t=ls.getVideoTracks()[0];
+  try{const c=t.getCapabilities?t.getCapabilities():{};if(c.zoom){await t.applyConstraints({advanced:[{zoom}]});return;}}catch{}
+  $('lv').style.transform=`scale(${zoom})`; $('lv').style.transformOrigin='center';
+};
+window.tFocus=()=>{focOn=!focOn;setTb('tFo',focOn?'on':'');toast(focOn?'🎯 Tap focus on':'Focus off');};
+window.tapF=async(e)=>{
+  if(!ls||!focOn) return;
+  const r=$('cw').getBoundingClientRect(), x=(e.clientX-r.left)/r.width, y=(e.clientY-r.top)/r.height;
+  const fr=$('fr'); fr.style.left=(x*100)+'%'; fr.style.top=(y*100)+'%'; fr.style.display='block';
+  setTimeout(()=>fr.style.display='none',900);
+  const t=ls.getVideoTracks()[0];
+  try{const c=t.getCapabilities?t.getCapabilities():{};if(c.focusMode?.includes('manual'))await t.applyConstraints({advanced:[{focusMode:'manual',pointsOfInterest:[{x,y}]}]});}catch{}
+};
+window.tMic=()=>{
+  if(!ls) return; micOn=!micOn; ls.getAudioTracks().forEach(t=>t.enabled=micOn);
+  setTb('tM',micOn?'on':'or');
+  $('tM').innerHTML=`${micOn?'🎙️':'🔇'}<span>${micOn?'Mic':'Muted'}</span>`;
+  toast(micOn?'🎙️ Mic on':'🔇 Muted');
+};
+
+window.conn=async()=>{
+  let id=$('ri').value.trim().toUpperCase();
+  if(!id)id=location.hash.replace('#','').toUpperCase();
+  if(!id){toast('Room ID দিন');return;}
+  roomId=id; isCam=false; $('ri').value=roomId;
+  setSt('v','ld',`Connecting ${roomId}...`); $('cnBtn').disabled=true;
+  slisten=false; listenSig(); sig({type:'join',from:'view'});
+};
+
+window.disc=()=>{
+  if(pc){pc.close();pc=null;} if(bc){bc.close();bc=null;}
+  if(vms){vms.getTracks().forEach(t=>t.stop());vms=null;} if(vmAF)cancelAnimationFrame(vmAF);
+  slisten=false; $('rv').srcObject=null; $('vp').style.display='flex'; $('vw').classList.remove('live');
+  $('lp').classList.remove('show'); $('cnBtn').disabled=false; $('dcBtn').disabled=true;
+  $('vmb').classList.remove('on'); setTb('vT',''); vMicOn=false;
+  setSt('v','','Room ID দিয়ে connect করুন');
+};
+
+window.vTalk=async()=>{
+  if(!vMicOn){
+    try{ vms=await navigator.mediaDevices.getUserMedia({audio:true}); vMicOn=true; setTb('vT','on'); toast('🎤 Talk on'); micViz(vms,true); if(pc)vms.getAudioTracks().forEach(t=>pc.addTrack(t,vms)); }catch{toast('Mic permission দিন');}
+  } else { vMicOn=false; if(vms){vms.getTracks().forEach(t=>t.stop());vms=null;} if(vmAF)cancelAnimationFrame(vmAF); $('vmb').classList.remove('on'); setTb('vT',''); toast('Mic off'); }
+};
+
+window.vVol=()=>{ volOn=!volOn; $('rv').muted=!volOn; setTb('vV',volOn?'on':''); $('vV').innerHTML=`${volOn?'🔊':'🔇'}<span>Sound</span>`; toast(volOn?'🔊 Sound on':'🔇 Muted'); };
+window.vFull=()=>{ const w=document.querySelector('#p-view .vw'); if(!document.fullscreenElement)w.requestFullscreen().catch(()=>toast('Fullscreen failed')); else document.exitFullscreen(); };
+window.cpUrl=()=>{ const u=$('shInp').value; navigator.clipboard.writeText(u).then(()=>toast('✓ Copied!')).catch(()=>{$('shInp').select();document.execCommand('copy');toast('✓ Copied!');}); };
+window.sw=(tab)=>{ document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',(tab==='cam'&&i===0)||(tab==='view'&&i===1))); document.querySelectorAll('.page').forEach((p,i)=>p.classList.toggle('active',(tab==='cam'&&i===0)||(tab==='view'&&i===1))); };
+
+window.onload=()=>{ const h=location.hash.replace('#',''); if(h){$('ri').value=h.toUpperCase();sw('view');} };
+</script>
+</body>
+</html>
